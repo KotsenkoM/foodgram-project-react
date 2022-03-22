@@ -1,12 +1,11 @@
 from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
-
-from users.serializers import UserSerializer
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-from .models import Tag, Ingredient, Recipe, IngredientAmount, Cart
+from .models import Ingredient, IngredientAmount, Recipe, Tag, Cart
 from users.models import UserFollow
+from users.serializers import UserSerializer
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -51,6 +50,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     is_in_shopping_cart = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
 
+
     class Meta:
         model = Recipe
         fields = '__all__'
@@ -58,12 +58,9 @@ class RecipeSerializer(serializers.ModelSerializer):
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get('request')
         if not request or request.user.is_anonymous:
-            return 0
-        user = request.user
-        return int(Cart.objects.filter(
-            recipe=obj,
-            user=user
-        ).exists())
+            return False
+        return Cart.objects.filter(
+            user=request.user, recipe=obj).exists()
 
     def get_is_favorited(self, obj):
         user = self.context.get('request').user
@@ -72,13 +69,13 @@ class RecipeSerializer(serializers.ModelSerializer):
         return Recipe.objects.filter(favorites__user=user, id=obj.id).exists()
 
     def validate(self, data):
-        ingredients = self.initial_data.get('ingredients')
+        ingredients = data.get('ingredients')
         ingredient_list = []
         for ingredient_item in ingredients:
             ingredient = get_object_or_404(Ingredient,
                                            id=ingredient_item['id'])
             if ingredient in ingredient_list:
-                raise serializers.ValidationError('Ингридиенты должны '
+                raise serializers.ValidationError('Ингредиенты должны '
                                                   'быть уникальными')
             ingredient_list.append(ingredient)
             if int(ingredient_item['amount']) < 0:
@@ -92,19 +89,34 @@ class RecipeSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         image = validated_data.pop('image')
         ingredients_data = validated_data.pop('ingredients')
+        tags_data = validated_data.get('tags')
         recipe = Recipe.objects.create(image=image, **validated_data)
-        tags_data = self.initial_data.get('tags')
         recipe.tags.set(tags_data)
         self.create_ingredients(ingredients_data, recipe)
         return recipe
 
-    def create_ingredients(self, ingredients, recipe):
+    def create_ingredients(self, instance, **validated_data):
+        ingredients = validated_data['ingredients']
+        tags = validated_data['tags']
+        for tag in tags:
+            instance.tags.add(tag)
+
         for ingredient in ingredients:
             IngredientAmount.objects.create(
-                recipe=recipe,
+                recipe=instance,
                 ingredient_id=ingredient.get('id'),
                 amount=ingredient.get('amount'),
             )
+        return instance
+
+    def update(self, instance, validated_data):
+        instance.ingredients.clear()
+        instance.tags.clear()
+        ingredients = validated_data.pop('ingredients')
+        tags = validated_data.get('tags')
+        instance = self.create_ingredients(
+            instance, ingredients=ingredients, tags=tags)
+        return super().update(instance, validated_data)
 
 
 class UserFollowSerializer(serializers.ModelSerializer):

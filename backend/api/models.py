@@ -1,5 +1,6 @@
-from django.db import models
 from django.core import validators
+from django.db import models
+
 from users.models import User
 
 class Tag(models.Model):
@@ -146,3 +147,12 @@ class IngredientAmount(models.Model):
                 1, message='Минимальное количество ингридиентов 1'),),
         verbose_name='Количество',
     )
+
+    class Meta:
+        ordering = ('-id',)
+        verbose_name = 'Количество ингредиента'
+
+        constraints = [
+            models.UniqueConstraint(fields=['recipe', 'ingredient'],
+                                    name='unique recipe ingredients')
+        ]

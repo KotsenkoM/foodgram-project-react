@@ -7,8 +7,10 @@ services:
     env_file:
       - .env
   backend:
-    image: redkaz/foodgram_backend
-    command: gunicorn foodgram.wsgi:application --bind 0.0.0.0:8000
+#    image: redkaz/foodgram_backend
+#    command: gunicorn foodgram.wsgi:application --bind 0.0.0.0:8000
+    build: ../backend
+    command: python manage.py runserver 0.0.0.0:8000
     restart: always
     depends_on:
       - db
