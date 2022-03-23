@@ -1,3 +1,4 @@
+from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
@@ -63,6 +64,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, id=pk)
         model.objects.create(user=user, recipe=recipe)
         serializer = RecipeSerializer(recipe)
+        RecipeSerializer.is_valid()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete_obj(self, model, user, pk):
@@ -74,15 +76,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
             'errors': 'Рецепт удален'
         }, status=status.HTTP_400_BAD_REQUEST)
 
-
-class DownloadShoppingCart(APIView):
-    permission_classes = [IsAuthenticated,]
-
-    def get_ingredient(self, request):
+    @action(detail=False, methods=['get'],
+            permission_classes=[IsAuthenticated])
+    def download_shopping_cart(self, request):
         shopping_list = {}
         ingredients = IngredientAmount.objects.filter(
-            recipe__purchases__user=request.user
-        )
+            recipe__cart__user=request.user).values(
+            'ingredient__name', 'ingredient__measurement_unit').order_by(
+            'ingredient__name').annotate(ingredient_total=Sum('amount'))
         for ingredient in ingredients:
             amount = ingredient.amount
             name = ingredient.ingredient.name

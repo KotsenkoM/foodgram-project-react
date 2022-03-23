@@ -60,7 +60,9 @@ class RecipeSerializer(serializers.ModelSerializer):
         if not request or request.user.is_anonymous:
             return False
         return Cart.objects.filter(
-            user=request.user, recipe=obj).exists()
+            recipe=obj,
+            user=request.user
+        ).exists()
 
     def get_is_favorited(self, obj):
         user = self.context.get('request').user
@@ -70,6 +72,9 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         ingredients = data.get('ingredients')
+        if not ingredients:
+            raise serializers.ValidationError({
+                'ingredients': 'Нужен хоть один ингридиент для рецепта'})
         ingredient_list = []
         for ingredient_item in ingredients:
             ingredient = get_object_or_404(Ingredient,
@@ -86,6 +91,15 @@ class RecipeSerializer(serializers.ModelSerializer):
         data['ingredients'] = ingredients
         return data
 
+    def create_ingredients(self, ingredients, recipe):
+        for ingredient in ingredients:
+            IngredientAmount.objects.create(
+                recipe=recipe,
+                ingredients_id=ingredient.get('id'),
+                amount=ingredient.get('amount'),
+            )
+            return ingredients
+
     def create(self, validated_data):
         image = validated_data.pop('image')
         ingredients_data = validated_data.pop('ingredients')
@@ -95,19 +109,6 @@ class RecipeSerializer(serializers.ModelSerializer):
         self.create_ingredients(ingredients_data, recipe)
         return recipe
 
-    def create_ingredients(self, instance, **validated_data):
-        ingredients = validated_data['ingredients']
-        tags = validated_data['tags']
-        for tag in tags:
-            instance.tags.add(tag)
-
-        for ingredient in ingredients:
-            IngredientAmount.objects.create(
-                recipe=instance,
-                ingredient_id=ingredient.get('id'),
-                amount=ingredient.get('amount'),
-            )
-        return instance
 
     def update(self, instance, validated_data):
         instance.ingredients.clear()
