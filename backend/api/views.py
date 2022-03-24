@@ -85,20 +85,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
             'ingredient__name', 'ingredient__measurement_unit').order_by(
             'ingredient__name').annotate(amount=Sum('amount'))
         for ingredient in ingredients:
-            amount = ingredient.amount
-            name = ingredient.ingredient.name
-            measurement_unit = ingredient.ingredient.measurement_unit
-            if name not in shopping_list:
-                shopping_list[name] = {
-                    'measurement_unit': measurement_unit,
-                    'amount': amount
-                }
-            else:
-                shopping_list[name]['amount'] += amount
-        main_list = ([f"* {item}:{value['amount']}"
-                      f"{value['measurement_unit']}\n"
-                      for item, value in shopping_list.items()])
-        main_list.append('Ваша корзина')
-        response = HttpResponse(main_list, 'Content-Type: text/plain')
+            shopping_list += (
+                f'{ingredient["ingredient__name"]} - '
+                f'{ingredient["amount"]} '
+                f'{ingredient["ingredient__measurement_unit"]}\n')
+
+        response = HttpResponse(shopping_list, 'Content-Type: text/plain')
         response['Content-Disposition'] = 'attachment; filename="BuyList.txt"'
         return response
