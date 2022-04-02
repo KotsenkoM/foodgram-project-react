@@ -71,7 +71,6 @@ class PostRecipeSerializer(serializers.ModelSerializer):
             'cooking_time',
         ]
 
-
     def create_ingredients(self, ingredients, recipe):
         for ingredient in ingredients:
             ingredient_id = ingredient['id']

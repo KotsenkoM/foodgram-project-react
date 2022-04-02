@@ -3,6 +3,7 @@ from django.db import models
 
 from users.models import User
 
+
 class Tag(models.Model):
     GREEN = '#008000'
     ORANGE = '#FFA500'
@@ -152,4 +153,3 @@ class IngredientAmount(models.Model):
             models.UniqueConstraint(fields=['ingredient', 'recipe'],
                                     name='unique recipe ingredients')
         ]
-
