@@ -1,19 +1,18 @@
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import status, viewsets
-from rest_framework.views import APIView
+from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from .filters import AuthorAndTagFilter, IngredientSearchFilter
-from .models import (Cart, Favorite, Ingredient, Recipe, Tag)
+from .filters import IngredientNameFilter, RecipeFilter
+from .models import (Cart, Favorite, Ingredient, Recipe, Tag, IngredientAmount)
 from .pagination import LimitPageNumberPagination
 from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
-from .serializers import (IngredientSerializer, IngredientAmount,
-                             RecipeSerializer, TagSerializer)
+from .serializers import (TagSerializer, PostRecipeSerializer, GetRecipeSerializer,
+                          IngredientSerializer)
 
 
 class TagsViewSet(ReadOnlyModelViewSet):
@@ -23,27 +22,31 @@ class TagsViewSet(ReadOnlyModelViewSet):
 
 
 class IngredientsViewSet(ReadOnlyModelViewSet):
-    permission_classes = (IsAdminOrReadOnly,)
+    permission_classes = (AllowAny,)
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    filter_backends = (IngredientSearchFilter,)
+    filter_backends = (IngredientNameFilter,)
     search_fields = ('^name',)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
     pagination_class = LimitPageNumberPagination
-    filter_class = AuthorAndTagFilter
+    filter_class = RecipeFilter
     permission_classes = [IsOwnerOrReadOnly]
 
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+    def get_serializer_class(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return GetRecipeSerializer
+        return PostRecipeSerializer
 
-    @action(detail=True, methods=['get', 'delete'],
+    def perform_create(self, serializer):
+        return serializer.save(author=self.request.user)
+
+    @action(detail=True, methods=['post', 'delete'],
             permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
-        if request.method == 'GET':
+        if request.method == 'POST':
             return self.add_obj(Favorite, request.user, pk)
         elif request.method == 'DELETE':
             return self.delete_obj(Favorite, request.user, pk)
@@ -63,8 +66,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
         recipe = get_object_or_404(Recipe, id=pk)
         model.objects.create(user=user, recipe=recipe)
-        serializer = RecipeSerializer(recipe)
-        RecipeSerializer.is_valid()
+        serializer = PostRecipeSerializer(recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def delete_obj(self, model, user, pk):
