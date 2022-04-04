@@ -54,6 +54,7 @@ class Recipe(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         verbose_name='Автор публикации',
+        related_name='recipes',
     )
     name = models.CharField(
         verbose_name='Название', max_length=200)
@@ -105,7 +106,7 @@ class Favorite(models.Model):
         ]
 
 
-class Cart(models.Model):
+class ShoppingCart(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

@@ -7,13 +7,16 @@ services:
     env_file:
       - .env
   backend:
+#    build: ../backend
+#    command: python manage.py runserver 0.0.0.0:8000
     image: redkaz/foodgram_backend:latest
     expose:
       - 8000
     restart: always
     volumes:
-      - static_value:/code/static/exit
-      - media_value:/code/media/
+#      - ../backend:/app
+      - static_value:/app/static/
+      - media_value:/app/media/
     depends_on:
       - db
     env_file:
@@ -23,7 +26,7 @@ services:
     volumes:
       - ../frontend/:/app/result_build/
     depends_on:
-      - db
+      - backend
   nginx:
     image: nginx:1.19.3
     ports:
@@ -36,7 +39,6 @@ services:
       - static_value:/var/html/static/
       - media_value:/var/html/media/
     depends_on:
-      - backend
       - frontend
 
 volumes:
