@@ -7,14 +7,11 @@ services:
     env_file:
       - .env
   backend:
-#    build: ../backend
-#    command: python manage.py runserver 0.0.0.0:8000
     image: redkaz/foodgram_backend:latest
     expose:
       - 8000
     restart: always
     volumes:
-#      - ../backend:/app
       - static_value:/app/static/
       - media_value:/app/media/
     depends_on:
