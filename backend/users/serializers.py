@@ -99,9 +99,16 @@ class ShowFollowSerializer(UserSerializer):
             'recipes_count',
         )
 
-    def get_recipes_count(self, obj):
-        return Recipe.objects.filter(author=obj).count()
-
     def get_recipes(self, obj):
-        recipes = obj.recipes.all()
-        return ShortRecipeSerializer(recipes, many=True).data
+        request = self.context.get('request')
+        recipes_limit = request.query_params.get('recipes_limit')
+        if recipes_limit is not None:
+            recipes = obj.recipes.all()[:(int(recipes_limit))]
+        else:
+            recipes = obj.recipes.all()
+        context = {'request': request}
+        return ShortRecipeSerializer(recipes, many=True,
+                                           context=context).data
+
+    def get_recipes_count(self, obj):
+        return obj.recipes.count()

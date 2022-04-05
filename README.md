@@ -44,6 +44,8 @@ DB_PORT=5432
 * Создайте суперпользователя Django:
 >sudo docker-compose exec backend python manage.py createsuperuser
 * Проект будет доступен по IP вашего сервера
-
-
-### Проект доступен по адресу http://51.250.24.63/
+### Автор проекта
+***
+<https://github.com/KotsenkoM/>
+### Проект доступен по адресу:
+<http://51.250.24.63/>

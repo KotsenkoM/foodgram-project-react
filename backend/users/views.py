@@ -6,7 +6,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from api.pagination import LimitPageNumberPagination
+from api.pagination import LimitPageNumberPagination, LimitPageFollowNumberPagination
 from .models import Follow
 from .serializers import FollowSerializer, ShowFollowSerializer
 
@@ -19,10 +19,10 @@ class CustomUserViewSet(DjoserUserViewSet):
     @action(methods=['get'], detail=False,
             permission_classes=[IsAuthenticated])
     def subscriptions(self, request):
-        user = self.request.user
+        user = request.user
         users = User.objects.filter(following__user=user)
-        paginator = LimitPageNumberPagination()
-        paginator.page_size_query_param = 'limit'
+        paginator = LimitPageFollowNumberPagination()
+        paginator.page_size_query_param = 'recipes_limit'
         paginated_users = paginator.paginate_queryset(users, request)
         serializer = ShowFollowSerializer(
             paginated_users, many=True, context={'request': request}
