@@ -19,7 +19,7 @@ class CustomUserViewSet(DjoserUserViewSet):
     @action(methods=['get'], detail=False,
             permission_classes=[IsAuthenticated])
     def subscriptions(self, request):
-        user = request.user
+        user = self.request.user
         users = User.objects.filter(following__user=user)
         paginator = LimitPageFollowNumberPagination()
         paginator.page_size_query_param = 'recipes_limit'
