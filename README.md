@@ -48,4 +48,4 @@ DB_PORT=5432
 ***
 <https://github.com/KotsenkoM/>
 ### Проект доступен по адресу:
-<http://51.250.24.63/>
+<http://glutton.ddns.net/>
